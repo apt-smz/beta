@@ -1,0 +1,41 @@
+#!/bin/bash
+
+IP_TO_PING="xxx.xxx.xxx.xxx"  # Replace with the IP address you want to monitor
+MAX_FAILURES=5  # Number of consecutive failures before restarting
+SHUTDOWN_FAILURES=10  # Number of consecutive failures before shutting down the system
+WAIT_TIME=60  # Change this to 60 seconds for 1 minute intervals
+
+STATE_FILE="/path/to/state_file.txt" 
+
+# Initialize failures count
+if [ -e "$STATE_FILE" ]; then
+    failures=$(cat "$STATE_FILE")
+else
+    failures=0
+fi
+
+while true; do
+    if ping -c 1 -W 1 "$IP_TO_PING" >/dev/null; then
+        # The ping was successful, reset the counter
+        failures=0
+    else
+        # The ping failed
+        ((failures++))
+
+        if [ "$failures" -eq "$MAX_FAILURES" ]; then
+            # Five consecutive failures, restart the system
+            echo "Restarting the system..."
+            sudo reboot
+        elif [ "$failures" -eq "$SHUTDOWN_FAILURES" ]; then
+            # Ten consecutive failures, shut down the system
+            echo "Shutting down the system..."
+            sudo shutdown -h now
+        fi
+    fi
+
+    # Save the current state to the file
+    echo "$failures" > "$STATE_FILE"
+
+    # Wait for the specified interval before the next ping attempt
+    sleep "$WAIT_TIME"
+done
